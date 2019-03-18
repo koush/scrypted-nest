@@ -34,12 +34,33 @@ class NestThermostat {
         return this.device.temperature_scale;
     }
     sendEvents() {
-        deviceManager.onDeviceEvent('Thermometer', this.getTemperatureAmbient());
-        deviceManager.onDeviceEvent('HumiditySensor', this.getHumidityAmbient());
+        deviceManager.onDeviceEvent(this.device.device_id, 'Thermometer', this.getTemperatureAmbient());
+        deviceManager.onDeviceEvent(this.device.device_id, 'HumiditySensor', this.getHumidityAmbient());
     }
 }
 
 class NestCamera {
+    constructor(device) {
+        this.device = device;
+        this.last_event = JSON.stringify(device.last_event);
+    }
+    sendEvents() {
+        var thisEvent = JSON.stringify(this.device.last_event);
+        if (thisEvent == this.last_event) {
+            return;
+        }
+        this.last_event = thisEvent;
+
+        if (this.device.last_event.has_sound) {
+            deviceManager.onDeviceEvent(this.device.device_id, 'AudioSensor', true);
+        }
+        if (this.device.last_event.has_motion) {
+            deviceManager.onDeviceEvent(this.device.device_id, 'MotionSensor', true);
+        }
+        if (this.device.last_event.has_person) {
+            deviceManager.onDeviceEvent(this.device.device_id, 'OccupancySensor', true);
+        }
+    }
 }
 
 class NestController {
@@ -61,9 +82,17 @@ class NestController {
                 return;
             }
 
+            log.i('nest event');
+            log.i(JSON.stringify(result.data, null, 2));
+
             if (result.data.devices.cameras) {
                 for (const [id, camera] of Object.entries(result.data.devices.cameras)) {
-
+                    var device = this.devices[id];
+                    if (!device) {
+                        continue;
+                    }
+                    device.device = camera;
+                    device.sendEvents();
                 }
             }
             if (result.data.devices.thermostats) {
@@ -121,6 +150,14 @@ class NestController {
             var devices = [];
             if (result.data.devices.cameras) {
                 for (const [id, camera] of Object.entries(result.data.devices.cameras)) {
+                    this.devices[id] = new NestCamera(camera);
+                    devices.push({
+                        id: id,
+                        name: camera.name_long,
+                        type: 'Camera',
+                        interfaces: [],
+                        events: ['OccupancySensor', 'MotionSensor', 'AudioSensor'],
+                    });
                 }
             }
             if (result.data.devices.thermostats) {
