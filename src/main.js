@@ -132,7 +132,6 @@ class NestController {
                         type: 'Thermostat',
                         interfaces: ['Thermometer', 'HumiditySensor'],
                         events: ['Thermometer', 'HumiditySensor'],
-                        events: []
                     });
                 }
             }
