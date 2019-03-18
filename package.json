@@ -1,4 +1,9 @@
 {
+   "name": "@scrypted/nest",
+   "version": "0.0.2",
+   "description": "Scrypted plugin for Nest Thermostats and Cameras.",
+   "author": "Scrypted",
+   "license": "Apache",
    "scripts": {
       "prepublishOnly": "NODE_ENV=production scrypted-webpack",
       "prescrypted-vscode-launch": "scrypted-webpack",
@@ -9,20 +14,26 @@
       "scrypted-webpack": "scrypted-webpack"
    },
    "keywords": [
+      "nest",
       "scrypted",
       "plugin"
    ],
    "scrypted": {
-      "name": "JavaScript Light",
+      "name": "Nest Controller",
       "type": "Device",
+      "singleInstance": true,
       "interfaces": [
-         "OnOff"
+         "OauthClient",
+         "DeviceProvider"
       ]
    },
    "devDependencies": {
-      "@scrypted/sdk": "0.0.9"
+      "@scrypted/sdk": "0.0.11"
    },
    "dependencies": {
-      "axios": "^0.18.0"
+      "axios": "^0.18.0",
+      "eventsource": "^1.0.7",
+      "query-string": "^6.4.0",
+      "simple-oauth2": "^2.2.1"
    }
 }

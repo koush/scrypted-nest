@@ -1,32 +1,176 @@
 // https://developer.scrypted.app/#getting-started
 import axios from 'axios';
 import sdk from "@scrypted/sdk";
-const { log } = sdk;
+const {scriptSettings} = sdk;
+const { log, deviceManager } = sdk;
+import url from 'url';
+import qs from 'query-string';
+import EventSource from 'eventsource';
 
-log.i('Hello World. This will create a virtual OnOff device.');
+const client_id = 'e09f8ecf-f1d4-4e22-9859-4b2d78f7ae35';
+const client_secret = 'dtvcL9UCZxV91lXOjoataZzLG';
+const redirect_uri = 'https://home.scrypted.app/web/oauth/callback';
 
-class Device {
-    constructor() {
-        this._isOn = false;
+var access_token = scriptSettings.getString('access_token');
+if (!access_token) {
+    log.a('Nest account is not authorized. Click the Authorize button to log in.');
+}
+else {
+    console.log(access_token);
+    log.clearAlerts();
+}
+
+class NestThermostat {
+    constructor(device) {
+        this.device = device;
     }
-    isOn() {
-        return this._isOn;
+    getHumidityAmbient() {
+        return this.device.humidity;
     }
-    turnOff() {
-        // set a breakpoint here.
-        log.i('turnOff was called!');
-        this._isOn = false;
+    getTemperatureAmbient() {
+        return this.device.ambient_temperature_c;
     }
-    async turnOn() {
-        // set a breakpoint here.
-        log.i('turnOn was called!');
-
-        log.i("Let's pretend to perform a web request on an API that would turn on a light.");
-        const ip = await axios.get('http://jsonip.com');
-        log.i(`my ip: ${ip.data.ip}`);
-
-        this._isOn = true;
+    getTemperatureUnit() {
+        return this.device.temperature_scale;
+    }
+    sendEvents() {
+        deviceManager.onDeviceEvent('Thermometer', this.getTemperatureAmbient());
+        deviceManager.onDeviceEvent('HumiditySensor', this.getHumidityAmbient());
     }
 }
 
-export default new Device();
+class NestCamera {
+}
+
+class NestController {
+    constructor() {
+        this._isOn = false;
+        this.sync();
+        this.devices = {};
+    }
+    startStreaming() {
+        var headers = {
+            "Authorization": 'Bearer ' + access_token
+        }
+        var source = new EventSource(this.endpoint, {"headers": headers});
+    
+        source.addEventListener('put', (result) => {
+            result = JSON.parse(result.data);
+            if (!result || !result.data || !result.data.devices) {
+                log.e('empty event?');
+                return;
+            }
+
+            if (result.data.devices.cameras) {
+                for (const [id, camera] of Object.entries(result.data.devices.cameras)) {
+
+                }
+            }
+            if (result.data.devices.thermostats) {
+                for (const [id, thermostat] of Object.entries(result.data.devices.thermostats)) {
+                    var device = this.devices[id];
+                    if (!device) {
+                        continue;
+                    }
+                    device.device = thermostat;
+                    device.sendEvents();
+                }
+            }
+        });
+    
+        source.addEventListener('open', function(event) {
+            console.log('Streaming connection opened.');
+        });
+    
+        source.addEventListener('auth_revoked', function(event) {
+            console.log('Authentication token was revoked.');
+            // Re-authenticate your user here.
+        });
+    
+        source.addEventListener('error', function(event) {
+            if (event.readyState == EventSource.CLOSED) {
+                console.error('Connection was closed!', event);
+            } else {
+                console.error('An unknown error occurred: ', event);
+            }
+        }, false);
+    }
+    sync() {
+        if (!access_token) {
+            return;
+        }
+        console.log('syncing');
+        const options = {
+            headers: {
+                Authorization: `Bearer ${access_token}`
+            }
+        };
+
+        axios.get('https://developer-api.nest.com', options)
+        .catch(e => {
+            // 307 redirect from nest.
+            // grab the response URL, and call it again with the authorization
+            this.endpoint = e.response.request.responseURL;
+            return axios.get(this.endpoint, options);
+        })
+        .catch(e => {
+            log.e(`There was an error syncing your nest devices ${e}`);
+            throw e;
+        })
+        .then(result => {
+            var devices = [];
+            if (result.data.devices.cameras) {
+                for (const [id, camera] of Object.entries(result.data.devices.cameras)) {
+                }
+            }
+            if (result.data.devices.thermostats) {
+                for (const [id, thermostat] of Object.entries(result.data.devices.thermostats)) {
+                    this.devices[id] = new NestThermostat(thermostat);
+                    devices.push({
+                        id: id,
+                        name: thermostat.name_long,
+                        type: 'Thermostat',
+                        interfaces: ['Thermometer', 'HumiditySensor'],
+                        events: ['Thermometer', 'HumiditySensor'],
+                        events: []
+                    });
+                }
+            }
+            deviceManager.onDevicesChanged({
+                devices,
+            });
+            log.i(JSON.stringify(result.data, null, 2));
+
+            this.startStreaming();
+        })
+    }
+    getOauthUrl() {
+        // redirect uri has a default, no need to pass it.
+        return `https://home.nest.com/login/oauth2?client_id=${client_id}`
+    }
+    getDevice(id) {
+        return this.devices[id];
+    }
+    async onOauthCallback(callbackUrl) {
+        const query = qs.parse(url.parse(callbackUrl).search);
+        const { code } = query;
+        var result = await axios.post('https://api.home.nest.com/oauth2/access_token', qs.stringify({
+            client_id,
+            client_secret,
+            code,
+            grant_type: 'authorization_code',
+        }), {
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+        });
+
+        console.log('done');
+        access_token = result.data.access_token;
+        log.i(`${JSON.stringify(result.data)}`);
+        scriptSettings.putString('access_token', access_token);
+        log.clearAlerts();
+    }
+}
+
+export default new NestController();
