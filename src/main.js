@@ -2,7 +2,7 @@
 import axios from 'axios';
 import sdk from "@scrypted/sdk";
 const {scriptSettings} = sdk;
-const { log, deviceManager } = sdk;
+const { log, deviceManager, createMediaObject } = sdk;
 import url from 'url';
 import qs from 'query-string';
 import EventSource from 'eventsource';
@@ -61,6 +61,27 @@ class NestCamera {
             deviceManager.onDeviceEvent(this.device.device_id, 'OccupancySensor', true);
         }
     }
+    takePicture() {
+        return createMediaObject('image/*', (async () => {
+            var request = `https://developer-api.nest.com/devices/cameras/${this.device.device_id}/snapshot_url`;
+            const options = {
+                responseType: 'text',
+                headers: {
+                    Accept: 'text/string',
+                    Authorization: `Bearer ${access_token}`
+                }
+            };
+            log.i(request);
+            var snapshot = await axios.get(request, options)
+            .catch(e => {
+                // 307 redirect from nest.
+                // grab the response URL, and call it again with the authorization
+                return axios.get(e.response.request.responseURL, options);
+            })
+            log.i(`snapshot: ${snapshot.data}`);
+            return snapshot.data;
+        })());
+    }
 }
 
 class NestController {
@@ -70,10 +91,12 @@ class NestController {
         this.devices = {};
     }
     startStreaming() {
-        var headers = {
-            "Authorization": 'Bearer ' + access_token
-        }
-        var source = new EventSource(this.endpoint, {"headers": headers});
+        const options = {
+            headers: {
+                Authorization: `Bearer ${access_token}`
+            }
+        };
+        var source = new EventSource(this.endpoint, options);
     
         source.addEventListener('put', (result) => {
             result = JSON.parse(result.data);
@@ -155,7 +178,7 @@ class NestController {
                         id: id,
                         name: camera.name_long,
                         type: 'Camera',
-                        interfaces: [],
+                        interfaces: ['Camera'],
                         events: ['OccupancySensor', 'MotionSensor', 'AudioSensor'],
                     });
                 }
@@ -209,4 +232,6 @@ class NestController {
     }
 }
 
-export default new NestController();
+const controller = new NestController();
+
+export default controller;
