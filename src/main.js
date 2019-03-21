@@ -71,7 +71,7 @@ class NestCamera {
                     Authorization: `Bearer ${access_token}`
                 }
             };
-            log.i(request);
+            // log.i(request);
             var snapshot = await axios.get(request, options)
             .catch(e => {
                 // 307 redirect from nest.
@@ -105,8 +105,8 @@ class NestController {
                 return;
             }
 
-            log.i('nest event');
-            log.i(JSON.stringify(result.data, null, 2));
+            log.i('nest event received');
+            // log.i(JSON.stringify(result.data, null, 2));
 
             if (result.data.devices.cameras) {
                 for (const [id, camera] of Object.entries(result.data.devices.cameras)) {
@@ -198,7 +198,7 @@ class NestController {
             deviceManager.onDevicesChanged({
                 devices,
             });
-            log.i(JSON.stringify(result.data, null, 2));
+            // log.i(JSON.stringify(result.data, null, 2));
 
             this.startStreaming();
         })
