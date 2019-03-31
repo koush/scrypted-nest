@@ -1,8 +1,8 @@
 // https://developer.scrypted.app/#getting-started
 import axios from 'axios';
 import sdk from "@scrypted/sdk";
-const {scriptSettings} = sdk;
-const { log, deviceManager, createMediaObject } = sdk;
+const { scriptSettings } = sdk;
+const { log, deviceManager, mediaManager } = sdk;
 import url from 'url';
 import qs from 'query-string';
 import EventSource from 'eventsource';
@@ -23,6 +23,7 @@ else {
 class NestThermostat {
     constructor(device) {
         this.device = device;
+        this.state = deviceManager.getDeviceState(this.device.device_id);
     }
     getHumidityAmbient() {
         return this.device.humidity;
@@ -34,8 +35,10 @@ class NestThermostat {
         return this.device.temperature_scale;
     }
     sendEvents() {
-        deviceManager.onDeviceEvent(this.device.device_id, 'Thermometer', this.getTemperatureAmbient());
-        deviceManager.onDeviceEvent(this.device.device_id, 'HumiditySensor', this.getHumidityAmbient());
+        this.state.temperature = this.device.ambient_temperature_c;
+        this.state.temperatureUnit = this.device.temperature_scale;
+        // deviceManager.onDeviceEvent(this.device.device_id, 'Thermometer', this.getTemperatureAmbient());
+        // deviceManager.onDeviceEvent(this.device.device_id, 'HumiditySensor', this.getHumidityAmbient());
     }
 }
 
@@ -62,7 +65,7 @@ class NestCamera {
         }
     }
     takePicture() {
-        return createMediaObject('image/*', (async () => {
+        var promise = (async () => {
             var request = `https://developer-api.nest.com/devices/cameras/${this.device.device_id}/snapshot_url`;
             const options = {
                 responseType: 'text',
@@ -80,7 +83,8 @@ class NestCamera {
             })
             log.i(`snapshot: ${snapshot.data}`);
             return snapshot.data;
-        })());
+        })();
+        return mediaManager.createMediaObject(promise, 'image/*');
     }
 }
 
@@ -98,7 +102,7 @@ class NestController {
         };
         var source = new EventSource(this.endpoint, options);
     
-        source.addEventListener('put', (result) => {
+        source.addEventListener('put', result => setImmediate(() => {
             result = JSON.parse(result.data);
             if (!result || !result.data || !result.data.devices) {
                 log.e('empty event?');
@@ -128,7 +132,7 @@ class NestController {
                     device.sendEvents();
                 }
             }
-        });
+        }));
     
         source.addEventListener('open', function(event) {
             console.log('Streaming connection opened.');
@@ -175,7 +179,7 @@ class NestController {
                 for (const [id, camera] of Object.entries(result.data.devices.cameras)) {
                     this.devices[id] = new NestCamera(camera);
                     devices.push({
-                        id: id,
+                        nativeId: id,
                         name: camera.name_long,
                         type: 'Camera',
                         interfaces: ['Camera'],
@@ -187,7 +191,7 @@ class NestController {
                 for (const [id, thermostat] of Object.entries(result.data.devices.thermostats)) {
                     this.devices[id] = new NestThermostat(thermostat);
                     devices.push({
-                        id: id,
+                        nativeId: id,
                         name: thermostat.name_long,
                         type: 'Thermostat',
                         interfaces: ['Thermometer', 'HumiditySensor'],
