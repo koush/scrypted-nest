@@ -11,7 +11,7 @@ const client_id = 'e09f8ecf-f1d4-4e22-9859-4b2d78f7ae35';
 const client_secret = 'dtvcL9UCZxV91lXOjoataZzLG';
 const redirect_uri = 'https://home.scrypted.app/web/oauth/callback';
 
-var access_token = scriptSettings.getString('access_token');
+var access_token = localStorage.getItem('access_token');
 if (!access_token) {
     log.a('Nest account is not authorized. Click the Authorize button to log in.');
 }
@@ -231,7 +231,7 @@ class NestController {
         console.log('done');
         access_token = result.data.access_token;
         log.i(`${JSON.stringify(result.data)}`);
-        scriptSettings.putString('access_token', access_token);
+        localStorage.setItem('access_token', access_token);
         log.clearAlerts();
     }
 }
