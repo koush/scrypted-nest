@@ -1,7 +1,6 @@
 // https://developer.scrypted.app/#getting-started
 import axios from 'axios';
 import sdk from "@scrypted/sdk";
-const { scriptSettings } = sdk;
 const { log, deviceManager, mediaManager } = sdk;
 import url from 'url';
 import qs from 'query-string';
