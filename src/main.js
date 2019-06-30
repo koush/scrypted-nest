@@ -36,8 +36,7 @@ class NestThermostat {
     sendEvents() {
         this.state.temperature = this.device.ambient_temperature_c;
         this.state.temperatureUnit = this.device.temperature_scale;
-        // deviceManager.onDeviceEvent(this.device.device_id, 'Thermometer', this.getTemperatureAmbient());
-        // deviceManager.onDeviceEvent(this.device.device_id, 'HumiditySensor', this.getHumidityAmbient());
+        this.state.humidity = this.getHumidityAmbient();
     }
 }
 
