@@ -180,8 +180,7 @@ class NestController {
                         nativeId: id,
                         name: camera.name_long,
                         type: 'Camera',
-                        interfaces: ['Camera'],
-                        events: ['OccupancySensor', 'MotionSensor', 'AudioSensor'],
+                        interfaces: ['Camera', 'OccupancySensor', 'MotionSensor', 'AudioSensor'],
                     });
                 }
             }
@@ -193,7 +192,6 @@ class NestController {
                         name: thermostat.name_long,
                         type: 'Thermostat',
                         interfaces: ['Thermometer', 'HumiditySensor'],
-                        events: ['Thermometer', 'HumiditySensor'],
                     });
                 }
             }
