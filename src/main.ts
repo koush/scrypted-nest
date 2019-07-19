@@ -39,7 +39,7 @@ class NestThermostat extends ScryptedDeviceBase implements TemperatureSetting {
         this.temperature = this.device.ambient_temperature_c;
         this.temperatureUnit = this.device.temperature_scale;
         this.humidity = this.device.humidity;
-        var modes: ThermostatMode[] = [ThermostatMode.Off, ThermostatMode.Eco];
+        var modes: ThermostatMode[] = [ThermostatMode.On, ThermostatMode.Off, ThermostatMode.Eco];
         if (this.device.can_cool) {
             modes.push(ThermostatMode.Cool);
         }
@@ -74,6 +74,10 @@ class NestThermostat extends ScryptedDeviceBase implements TemperatureSetting {
         })();
     }
     setThermostatMode(mode: ThermostatMode): void {
+        // nest doesn't actually support "on", so alias that to eco for on/off toggle in dashboard.
+        if (mode === ThermostatMode.On) {
+            mode = ThermostatMode.Eco;
+        }
         this.do307Request('put', {
             hvac_mode: modeReverseLookup[mode],
         });
