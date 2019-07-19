@@ -30,11 +30,12 @@
       ]
    },
    "devDependencies": {
-      "@scrypted/sdk": "0.0.40"
+      "@scrypted/sdk": "0.0.41"
    },
    "dependencies": {
-      "axios": "^0.18.0",
+      "axios": "^0.19.0",
       "eventsource": "^1.0.7",
+      "lodash.invert": "^4.3.0",
       "query-string": "^6.4.0",
       "simple-oauth2": "^2.2.1"
    }
