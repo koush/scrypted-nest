@@ -1,6 +1,6 @@
 {
    "name": "@scrypted/nest",
-   "version": "0.0.12",
+   "version": "0.0.13",
    "description": "Scrypted plugin for Nest Thermostats and Cameras.",
    "author": "Scrypted",
    "license": "Apache",
@@ -30,7 +30,7 @@
       ]
    },
    "devDependencies": {
-      "@scrypted/sdk": "0.0.41"
+      "@scrypted/sdk": "0.0.45"
    },
    "dependencies": {
       "axios": "^0.19.0",

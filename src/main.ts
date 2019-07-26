@@ -1,5 +1,5 @@
 // https://developer.scrypted.app/#getting-started
-import axios from 'axios';
+import axios, { AxiosRequestConfig } from 'axios';
 import sdk, { ScryptedDeviceBase, Thermometer, HumiditySensor, Camera, TemperatureSetting, ScryptedInterface, ThermostatMode } from "@scrypted/sdk";
 const { log, deviceManager, mediaManager } = sdk;
 import url from 'url';
@@ -15,7 +15,6 @@ if (!access_token) {
     log.a('Nest account is not authorized. Click the Authorize button to log in.');
 }
 else {
-    console.log(access_token);
     log.clearAlerts();
 }
 
@@ -126,7 +125,7 @@ class NestCamera extends ScryptedDeviceBase implements Camera {
     takePicture() {
         var promise = (async () => {
             var request = `https://developer-api.nest.com/devices/cameras/${this.device.device_id}/snapshot_url`;
-            const options = {
+            const options: AxiosRequestConfig = {
                 responseType: 'text',
                 headers: {
                     Accept: 'text/string',
@@ -195,19 +194,19 @@ class NestController {
         }));
 
         source.addEventListener('open', function (event) {
-            console.log('Streaming connection opened.');
+            log.i('Streaming connection opened.');
         });
 
         source.addEventListener('auth_revoked', function (event) {
-            console.log('Authentication token was revoked.');
+            log.i('Authentication token was revoked.');
             // Re-authenticate your user here.
         });
 
         source.addEventListener('error', function (event) {
             if (event.readyState == EventSource.CLOSED) {
-                console.error('Connection was closed!', event);
+                log.i(`Connection was closed: ${event}`);
             } else {
-                console.error('An unknown error occurred: ', event);
+                log.i(`An unknown error occurred: ${event}`);
             }
         });
     }
@@ -286,7 +285,6 @@ class NestController {
                 }
             });
 
-        console.log('done');
         access_token = result.data.access_token;
         log.i(`${JSON.stringify(result.data)}`);
         localStorage.setItem('access_token', access_token);
